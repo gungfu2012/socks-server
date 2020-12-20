@@ -82,6 +82,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	conn := connArray[indexInt]
 	n, _ := conn.Read(recvbuf[0:bufmax])
 	w.Write(recvbuf[0:n])
+	r.Body.Close()
 	return
 }
 
