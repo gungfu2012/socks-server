@@ -65,9 +65,16 @@ func post(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(indexInt)
 	//获取出站连接
 	conn := connArray[indexInt]
-	n, _ := r.Body.Read(sendbuf[0:bufmax])
-	fmt.Println("we got some data from client:", n)
-	conn.Write(sendbuf[0:n])
+	for {
+		n, _ := r.Body.Read(sendbuf[0:bufmax])
+		if n <= 0 {
+			break
+		}
+		conn.Write(sendbuf[0:n])
+	}
+	//n, _ := r.Body.Read(sendbuf[0:bufmax])
+	//fmt.Println("we got some data from client:", n)
+	//conn.Write(sendbuf[0:n])
 	r.Body.Close()
 	io.WriteString(w, "good")
 }
