@@ -111,7 +111,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 		n, err := conn.Read(recvbuf[0:bufmax])
 		fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
 
-		w.Write(recvbuf[0:0])
+		w.Write(recvbuf[0:n])
 
 		/*if err == io.EOF {
 			return
