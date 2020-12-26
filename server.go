@@ -99,9 +99,9 @@ func get(w http.ResponseWriter, r *http.Request) {
 	if conn != nil {
 		n, err := conn.Read(recvbuf[0:bufmax])
 		fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
-		if err == io.EOF {
+		/*if err == io.EOF {
 			return
-		}
+		}*/
 		w.Write(recvbuf[0:n])
 	} else {
 		fmt.Println("the remote conn had closed")
