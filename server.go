@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -59,19 +60,26 @@ func handlehandshark(w http.ResponseWriter, r *http.Request) {
 
 func post(w http.ResponseWriter, r *http.Request) {
 	//获取index值
-	var sendbuf [bufmax]byte
+	//var sendbuf [bufmax]byte
 	index := r.Header.Get("x-index-2955")
 	indexInt, _ := strconv.Atoi(index)
 	fmt.Println(indexInt)
 	//获取出站连接
 	conn := connArray[indexInt]
-	for {
+	//读取client数据并发送至目标网站
+	if conn != nil {
+		buf, err := ioutil.ReadAll(r.Body)
+		fmt.Println("read from client ,the err is :", err)
+		n, err := conn.Write(buf)
+		fmt.Println("send data to remote ,the err is :", err, ",the data length is :", n)
+	}
+	/*for {
 		n, _ := r.Body.Read(sendbuf[0:bufmax])
 		if n <= 0 {
 			break
 		}
 		conn.Write(sendbuf[0:n])
-	}
+	}*/
 	//n, _ := r.Body.Read(sendbuf[0:bufmax])
 	//fmt.Println("we got some data from client:", n)
 	//conn.Write(sendbuf[0:n])
@@ -87,8 +95,21 @@ func get(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(indexInt)
 	//获取入站连接
 	conn := connArray[indexInt]
-	n, _ := conn.Read(recvbuf[0:bufmax])
+	//读取目标网站数据并发送至client
+	if conn != nil {
+		n, err := conn.Read(recvbuf[0:bufmax])
+		fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
+		if err == io.EOF {
+			return
+		}
+		w.Write(recvbuf[0:n])
+	} else {
+		fmt.Println("the remote conn had closed")
+		w.Write(recvbuf[0:0])
+	}
+	/*n, _ := conn.Read(recvbuf[0:bufmax])
 	w.Write(recvbuf[0:n])
+	*/
 	r.Body.Close()
 	return
 }
