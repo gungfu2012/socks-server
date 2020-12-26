@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 )
 
 type reqmsg struct {
@@ -98,7 +97,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	conn := connArray[indexInt]
 	//读取目标网站数据并发送至client
 	if conn != nil {
-		for i := 0; i < 30; i++ {
+		/*for i := 0; i < 30; i++ {
 			n, err := conn.Read(recvbuf[0:bufmax])
 			fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
 			if n > 0 {
@@ -108,8 +107,12 @@ func get(w http.ResponseWriter, r *http.Request) {
 			} else {
 				time.Sleep(100 * time.Millisecond)
 			}
-		}
+		}*/
+		n, err := conn.Read(recvbuf[0:bufmax])
+		fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
+
 		w.Write(recvbuf[0:0])
+
 		/*if err == io.EOF {
 			return
 		}*/
