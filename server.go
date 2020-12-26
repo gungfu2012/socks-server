@@ -97,32 +97,18 @@ func get(w http.ResponseWriter, r *http.Request) {
 	conn := connArray[indexInt]
 	//读取目标网站数据并发送至client
 	if conn != nil {
-		/*for i := 0; i < 30; i++ {
-			n, err := conn.Read(recvbuf[0:bufmax])
-			fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
-			if n > 0 {
-				w.Write(recvbuf[0:n])
-				r.Body.Close()
-				return
-			} else {
-				time.Sleep(100 * time.Millisecond)
-			}
-		}*/
 		n, err := conn.Read(recvbuf[0:bufmax])
 		fmt.Println("read data from remote the datalength is :", n, ",the err is :", err)
-
-		w.Write(recvbuf[0:n])
-
-		/*if err == io.EOF {
-			return
-		}*/
+		if err != nil && n == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.Write(recvbuf[0:n])
+		}
 	} else {
 		fmt.Println("the remote conn had closed")
-		w.Write(recvbuf[0:0])
+		w.WriteHeader(http.StatusBadRequest)
 	}
-	/*n, _ := conn.Read(recvbuf[0:bufmax])
-	w.Write(recvbuf[0:n])
-	*/
+
 	r.Body.Close()
 	return
 }
