@@ -134,8 +134,17 @@ func dns(w http.ResponseWriter, r *http.Request) {
 	var recvbuf [bufmax]byte
 	buf, _ := ioutil.ReadAll(r.Body)
 	conn, _ := net.Dial("udp", "8.8.8.8:53")
+	if conn == nil {
+		return
+	}
 	conn.Write(buf)
+	if conn == nil {
+		return
+	}
 	n, _ := conn.Read(recvbuf[0:bufmax])
+	if w == nil {
+		return
+	}
 	w.Write(recvbuf[0:n])
 }
 
