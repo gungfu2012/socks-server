@@ -26,14 +26,31 @@ func handlehandshark(w http.ResponseWriter, r *http.Request) {
 	var recvbuf [bufmax]byte //接收客户端数据缓冲区
 	//var sendbuf [bufmax]byte //发送客户端数据缓存区
 	var reqaddr reqmsg //客户端请求地址
+	n, _ := r.Body.Read(recvbuf[0:bufmax])
 
-	r.Body.Read(recvbuf[0:bufmax])
-	reqaddr.dstaddr[0] = recvbuf[0]
-	reqaddr.dstaddr[1] = recvbuf[1]
-	reqaddr.dstaddr[2] = recvbuf[2]
-	reqaddr.dstaddr[3] = recvbuf[3]
-	reqaddr.dstport[0] = recvbuf[4]
-	reqaddr.dstport[1] = recvbuf[5]
+	//get atyp
+	atyp := r.Header.Get("x-atyp-2955")
+	atypInt, _ := strconv.Atoi(atyp)
+
+	var ip net.IP
+	var addrstr string
+
+	switch atypInt {
+	case 1:
+		ip = recvbuf[0:4]
+		addrstr = ip.String()
+		reqaddr.dstport[0] = recvbuf[4]
+		reqaddr.dstport[1] = recvbuf[5]
+	case 3:
+		addrstr = fmt.Sprintf("%s", recvbuf[0:n-2])
+		reqaddr.dstport[0] = recvbuf[n-2]
+		reqaddr.dstport[1] = recvbuf[n-1]
+	case 4:
+		ip = recvbuf[0:16]
+		addrstr = "[" + ip.String() + "]"
+		reqaddr.dstport[0] = recvbuf[16]
+		reqaddr.dstport[1] = recvbuf[17]
+	}
 
 	//获取index值
 	index := r.Header.Get("x-index-2955")
@@ -41,7 +58,7 @@ func handlehandshark(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(indexInt)
 
 	//构造目标地址和端口
-	addrstr := fmt.Sprintf("%d.%d.%d.%d", reqaddr.dstaddr[0], reqaddr.dstaddr[1], reqaddr.dstaddr[2], reqaddr.dstaddr[3])
+	//addrstr := fmt.Sprintf("%d.%d.%d.%d", reqaddr.dstaddr[0], reqaddr.dstaddr[1], reqaddr.dstaddr[2], reqaddr.dstaddr[3])
 	fmt.Println("this is :", addrstr)
 	port := fmt.Sprintf("%d", uint16(reqaddr.dstport[0])<<8|uint16(reqaddr.dstport[1]))
 	fmt.Println(port)
@@ -113,6 +130,15 @@ func get(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func dns(w http.ResponseWriter, r *http.Request) {
+	var recvbuf [bufmax]byte
+	buf, _ := ioutil.ReadAll(r.Body)
+	conn, _ := net.Dial("udp", "8.8.8.8:53")
+	conn.Write(buf)
+	n, _ := conn.Read(recvbuf[0:bufmax])
+	w.Write(recvbuf[0:n])
+}
+
 func main() {
 	// Listen on TCP port 8080 on all interfaces.
 	port := os.Getenv("PORT")
@@ -128,5 +154,6 @@ func main() {
 	http.HandleFunc("/handshark", handlehandshark)
 	http.HandleFunc("/post", post)
 	http.HandleFunc("/get", get)
+	http.HandleFunc("/dns", dns)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
