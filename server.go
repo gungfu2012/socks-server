@@ -17,6 +17,8 @@ type reqmsg struct {
 	dstport [2]uint8
 } //定义socks5请求包结构-接收
 
+const opdata uint8 = 21 //the xor opdata
+
 var connArray [65536]net.Conn //连接池
 
 const bufmax = 1 << 20 //最大缓存区大小
@@ -27,6 +29,10 @@ func handlehandshark(w http.ResponseWriter, r *http.Request) {
 	//var sendbuf [bufmax]byte //发送客户端数据缓存区
 	var reqaddr reqmsg //客户端请求地址
 	n, _ := r.Body.Read(recvbuf[0:bufmax])
+
+	for i := 0; i < n; i++ {
+		recvbuf[i] = recvbuf[i] ^ opdata
+	}
 
 	//get atyp
 	atyp := r.Header.Get("x-atyp-2955")
@@ -43,6 +49,7 @@ func handlehandshark(w http.ResponseWriter, r *http.Request) {
 		reqaddr.dstport[1] = recvbuf[5]
 	case 3:
 		addrstr = fmt.Sprintf("%s", recvbuf[0:n-2])
+		fmt.Println("get addr is : ",recvbuf[0:n-2])
 		reqaddr.dstport[0] = recvbuf[n-2]
 		reqaddr.dstport[1] = recvbuf[n-1]
 	case 4:
@@ -87,19 +94,13 @@ func post(w http.ResponseWriter, r *http.Request) {
 	if conn != nil {
 		buf, err := ioutil.ReadAll(r.Body)
 		fmt.Println("read from client ,the err is :", err)
-		n, err := conn.Write(buf)
+		n := len(buf)
+		for i := 0; i < n; i++ {
+			buf[i] = buf[i] ^ opdata
+		}
+		n, err = conn.Write(buf)
 		fmt.Println("send data to remote ,the err is :", err, ",the data length is :", n)
 	}
-	/*for {
-		n, _ := r.Body.Read(sendbuf[0:bufmax])
-		if n <= 0 {
-			break
-		}
-		conn.Write(sendbuf[0:n])
-	}*/
-	//n, _ := r.Body.Read(sendbuf[0:bufmax])
-	//fmt.Println("we got some data from client:", n)
-	//conn.Write(sendbuf[0:n])
 	r.Body.Close()
 	io.WriteString(w, "good")
 }
@@ -119,6 +120,9 @@ func get(w http.ResponseWriter, r *http.Request) {
 		if err != nil && n == 0 {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
+			for i := 0; i < n; i++ {
+				recvbuf[i] = recvbuf[i] ^ opdata
+			}
 			w.Write(recvbuf[0:n])
 		}
 	} else {
@@ -133,6 +137,10 @@ func get(w http.ResponseWriter, r *http.Request) {
 func dns(w http.ResponseWriter, r *http.Request) {
 	var recvbuf [bufmax]byte
 	buf, _ := ioutil.ReadAll(r.Body)
+	n := len(buf)
+	for i := 0; i < n; i++ {
+		buf[i] = buf[i] ^ opdata
+	}
 	conn, _ := net.Dial("udp", "8.8.8.8:53")
 	if conn == nil {
 		return
@@ -141,9 +149,12 @@ func dns(w http.ResponseWriter, r *http.Request) {
 	if conn == nil {
 		return
 	}
-	n, _ := conn.Read(recvbuf[0:bufmax])
+	n, _ = conn.Read(recvbuf[0:bufmax])
 	if w == nil {
 		return
+	}
+	for i := 0; i < n; i++ {
+		recvbuf[i] = recvbuf[i] ^ opdata
 	}
 	w.Write(recvbuf[0:n])
 }
